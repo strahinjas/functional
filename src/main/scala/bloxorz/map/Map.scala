@@ -18,13 +18,15 @@ class Map(val grid: Vector[Vector[Field]]) {
             }
         }
 
-        grid.size == n
+        true
     }
 
     def print(): Unit = {
+        println()
         grid.foreach(row => {
             row.foreach(field => Console.print(field.symbol))
             println()
         })
+        println()
     }
 }
