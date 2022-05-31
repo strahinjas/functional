@@ -5,7 +5,7 @@ import bloxorz.map._
 
 import scala.collection.mutable
 import scala.io.Source
-import scala.util.{ Failure, Success, Using }
+import scala.util.{ Failure, Success, Try, Using }
 
 class Game(interface: Interface) {
     private val maps: mutable.HashMap[String, Map] = new mutable.HashMap()
@@ -13,12 +13,13 @@ class Game(interface: Interface) {
     interface.game = this
     interface.run()
 
-    def loadMap(fileName: String): Unit = {
+    def loadMap(fileName: String): Try[Boolean] = {
         val result = Using(Source.fromFile(fileName)) { source =>
             val grid = source.getLines().toVector.map(line => line.toCharArray.toVector)
             val fieldGrid = grid.map(row => row.map(symbol => FieldFactory.createField(symbol)))
 
             maps += fileName -> new Map(fieldGrid)
+            maps.contains(fileName)
         }
 
         result match {
@@ -29,6 +30,8 @@ class Game(interface: Interface) {
             case Failure(_) =>
                 println(s"Map '$fileName' could not be found.")
         }
+
+        result
     }
 }
 
