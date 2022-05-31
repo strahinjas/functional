@@ -6,6 +6,18 @@ import bloxorz.game.Interface
 import scala.annotation.tailrec
 
 class CommandLineInterface extends Interface {
+    private def mapChooser(): String = {
+        println("Available maps:")
+
+        val maps = game.getLoadedMaps
+
+        for ((index, map) <- maps.zipWithIndex) {
+            println(s"${index + 1}. $map")
+        }
+
+        maps(safeReadOption(maps.length))
+    }
+
     private def mainMenu(option: Int = 0): Unit = option match {
         case 0 =>
             println("1. Load map from file")
@@ -18,6 +30,13 @@ class CommandLineInterface extends Interface {
             game.loadMap(fileName)
             displayMenu(MainMenu)
         case 2 =>
+            val selectedMap = mapChooser()
+            game.selectMap(selectedMap)
+
+            println(s"Map '$selectedMap' is selected")
+            println("Game is starting...")
+            println()
+
             displayMenu(InGame)
         case 3 =>
             displayMenu(MapCreator)
@@ -37,6 +56,18 @@ class CommandLineInterface extends Interface {
         try {
             print("Please choose desired option: ")
             scala.io.StdIn.readInt()
+        } catch {
+            case _: Throwable => safeReadOption()
+        }
+    }
+
+    private def safeReadOption(max: Int): Int = {
+        try {
+            print("Please choose desired option: ")
+            val option = scala.io.StdIn.readInt() - 1
+
+            if (option < 0 || option >= max) safeReadOption(max)
+            else option
         } catch {
             case _: Throwable => safeReadOption()
         }

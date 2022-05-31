@@ -9,6 +9,7 @@ import scala.util.{ Failure, Success, Try, Using }
 
 class Game(interface: Interface) {
     private val maps: mutable.HashMap[String, Map] = new mutable.HashMap()
+    private var selectedMap: Map = _
 
     interface.game = this
     interface.run()
@@ -32,6 +33,12 @@ class Game(interface: Interface) {
         }
 
         result
+    }
+
+    def getLoadedMaps: Vector[String] = maps.keys.toVector
+
+    def selectMap(name: String): Unit = {
+        selectedMap = new Map(maps(name).grid)
     }
 }
 
