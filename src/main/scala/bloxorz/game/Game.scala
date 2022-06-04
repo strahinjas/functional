@@ -1,44 +1,118 @@
 package bloxorz.game
 
 import bloxorz.console.CommandLineInterface
+import bloxorz.game.Direction.Direction
+import bloxorz.game.Orientation._
+import bloxorz.game.Outcome._
+import bloxorz.map.Field._
 import bloxorz.map._
 
 import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
-import scala.util.{ Failure, Success, Try, Using }
+import scala.util.{ Try, Using }
 
 class Game(interface: Interface) {
     private val maps: mutable.HashMap[String, Map] = new mutable.HashMap()
     private var selectedMap: Map = _
 
+    private var block: Block = _
+
+    private var moveSequence: Vector[Direction] = _
+
     interface.game = this
     interface.run()
 
     def loadMap(fileName: String): Try[Boolean] = {
-        val result = Using(Source.fromFile(fileName)) { source =>
-            val grid = source.getLines().toVector.map(line => line.toCharArray.toVector)
-            val fieldGrid = grid.map(row => row.map(symbol => FieldFactory.createField(symbol)))
+        Using(Source.fromFile(fileName)) { source =>
+            val grid = ArrayBuffer.from(source.getLines().toArray.map(line => ArrayBuffer.from(line.toCharArray)))
+            val fieldGrid = grid.map(row => row.map(Field.withName))
 
             maps += fileName -> new Map(fieldGrid)
             maps.contains(fileName)
         }
-
-        result match {
-            case Success(_) =>
-                println(s"Map '$fileName' was successfully loaded.")
-            case Failure(exception) if exception.isInstanceOf[IllegalArgumentException] =>
-                println("Unsupported map format provided.")
-            case Failure(_) =>
-                println(s"Map '$fileName' could not be found.")
-        }
-
-        result
     }
 
-    def getLoadedMaps: Vector[String] = maps.keys.toVector
+    def getLoadedMaps: Vector[String] = maps.keys.toVector.sorted
 
-    def selectMap(name: String): Unit = {
-        selectedMap = new Map(maps(name).grid)
+    def start(mapName: String): Unit = {
+        selectedMap = new Map(maps(mapName).grid)
+        block = new Block(selectedMap.getStartPosition)
+    }
+
+    def move(direction: Direction): Outcome = {
+        block.move(direction)
+        printMap()
+        evaluateOutcome()
+    }
+
+    private def evaluateOutcome(): Outcome = {
+        val position = block.position
+        val orientation = block.orientation
+
+        if (!selectedMap.isPositionValid(position) ||
+            (orientation == Horizontal && !selectedMap.isPositionValid(block.getSecondPosition))) {
+            return Defeat
+        }
+
+        if (orientation == Vertical && position == selectedMap.getFinishPosition) {
+            return Victory
+        }
+
+        if (orientation == Vertical && selectedMap.get(position) == Plate) {
+            return InProgress
+        }
+
+        if (orientation == Horizontal &&
+            selectedMap.get(position) != Empty &&
+            selectedMap.get(block.getSecondPosition) != Empty) {
+            return InProgress
+        }
+
+        Defeat
+    }
+
+    def loadMoveSequence(fileName: String): Try[Boolean] = {
+        Using(Source.fromFile(fileName)) { source =>
+            moveSequence = source.getLines().toVector.map(Direction.fromString)
+            true
+        }
+    }
+
+    def executeMoveSequence(): Outcome = {
+        if (moveSequence != null) {
+            moveSequence.foreach(move(_) match {
+                case Victory => return Victory
+                case Defeat => return Defeat
+                case _ =>
+            })
+            return InProgress
+        }
+        throw new IllegalStateException()
+    }
+
+    def printMap(): Unit = {
+        if (selectedMap != null && block != null) {
+            val stringBuilder = new mutable.StringBuilder()
+            val occupiedFields = block.getOccupiedFields
+
+            for (x <- selectedMap.grid.indices) {
+                for (y <- selectedMap.grid(0).indices) {
+                    stringBuilder.append(
+                        if (occupiedFields.contains((x, y))) Field.Block
+                        else selectedMap.grid(x)(y)
+                    )
+                }
+                stringBuilder.append(System.lineSeparator())
+            }
+
+            println(stringBuilder.toString())
+        }
+    }
+
+    def printMap(name: String): Unit = {
+        println()
+        print(maps(name))
     }
 }
 

@@ -1,20 +1,23 @@
 package bloxorz.map
 
-sealed class Field(val symbol: Char)
+import bloxorz.game.Direction.Direction
 
-case class Plate() extends Field('o')
-case class Empty() extends Field('-')
-case class Start() extends Field('S')
-case class Finish() extends Field('T')
-case class Trap() extends Field('.')
+object Field extends Enumeration {
+    type Field = Value
 
-object FieldFactory {
-    def createField(symbol: Char): Field = symbol match {
-        case 'o' => Plate()
-        case '-' => Empty()
-        case 'S' => Start()
-        case 'T' => Finish()
-        case '.' => Trap()
-        case _ => new Field(symbol)
+    val Block: Field = Value("X")
+    val Plate: Field = Value("o")
+    val Empty: Field = Value("-")
+    val Start: Field = Value("S")
+    val Finish: Field = Value("T")
+    val Trap: Field = Value(".")
+    val Unknown: Field = Value
+
+    def withName(symbol: Char): Field = {
+        values.find(_.toString.head == symbol).getOrElse(Unknown)
+    }
+
+    def validHorizontal(field: Field): Boolean = {
+        field != Empty
     }
 }
