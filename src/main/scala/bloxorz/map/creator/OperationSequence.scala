@@ -2,9 +2,10 @@ package bloxorz.map.creator
 
 import bloxorz.map.Map
 
-class OperationSequence(val name: String) {
+@SerialVersionUID(100L)
+class OperationSequence(val name: String) extends Serializable {
     import OperationSequence.Operation
-    private var sequence: Operation = MapCreator.identity
+    var sequence: Operation = MapCreator.identity
 
     def attach(operation: Operation): Unit = {
         def attachInternal(operation: Operation)(map: Map): Map = {

@@ -66,7 +66,6 @@ class Map(val grid: ArrayBuffer[ArrayBuffer[Field]]) {
             stringBuilder.append(System.lineSeparator())
         })
 
-        stringBuilder.append(System.lineSeparator())
         stringBuilder.toString()
     }
 }

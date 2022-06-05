@@ -49,6 +49,12 @@ object MapCreator {
         map
     }
 
+    def removeTrap(x: Int, y: Int)(map: Map): Map = {
+        if (!map.isPositionValid(x, y)) throw new IllegalArgumentException()
+        if (map.get(x, y) == Trap) map.set(x, y, Plate)
+        map
+    }
+
     def setStart(x: Int, y: Int)(map: Map): Map = {
         if (!map.isPositionValid(x, y)) throw new IllegalArgumentException()
 

@@ -28,13 +28,13 @@ class Game(interface: UserInterface) {
             val grid = ArrayBuffer.from(source.getLines().toArray.map(line => ArrayBuffer.from(line.toCharArray)))
             val fieldGrid = grid.map(row => row.map(Field.withName))
 
-            maps += fileName -> new Map(fieldGrid)
+            maps(fileName) = new Map(fieldGrid)
             maps.contains(fileName)
         }
     }
 
     def getLoadedMaps: Vector[String] = maps.keys.toVector.sorted
-    def getMap(mapName: String): Map = maps(mapName)
+    def getMap(mapName: String): Map = new Map(maps(mapName).grid)
 
     def start(mapName: String): Unit = {
         selectedMap = new Map(maps(mapName).grid)
@@ -109,6 +109,10 @@ class Game(interface: UserInterface) {
 
             println(stringBuilder.toString())
         }
+    }
+
+    def findSolution(fileName: String): Boolean = {
+        true
     }
 }
 

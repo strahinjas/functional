@@ -2,25 +2,42 @@ package bloxorz.console
 
 import bloxorz.console.Phase._
 import bloxorz.game.Outcome._
-import bloxorz.game.{ Direction, UserInterface }
+import bloxorz.game._
 import bloxorz.map.Map
+import bloxorz.map.Map.Position
+import bloxorz.map.creator.{ MapCreator, OperationSequence }
 
+import java.io.{ FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, PrintWriter }
+import java.nio.file.{ Files, Paths }
 import scala.annotation.tailrec
+import scala.collection.mutable
 import scala.util.{ Failure, Success }
 
 class CommandLineUserInterface extends UserInterface {
     private var editedMap: Map = _
+    private var activeMapName: String = _
 
-    private def mapSelector(): String = {
-        println("Available maps:")
+    private val sequences: mutable.HashMap[String, OperationSequence] = new mutable.HashMap()
+    private var activeSequence: OperationSequence = _
+    private val sequencesFileName: String = "sequences/bloxorz.file"
 
-        val maps = game.getLoadedMaps
+    if (Files.exists(Paths.get(sequencesFileName))) {
+        new ObjectInputStream(new FileInputStream(sequencesFileName)) {
+            sequences.addAll(readObject.asInstanceOf[mutable.HashMap[String, OperationSequence]])
+            close()
+        }
+    }
 
-        for ((map, index) <- maps.zipWithIndex) {
-            println(s"${index + 1}. $map")
+    private def selector(text: String, values: Vector[String]): String = {
+        if (values.isEmpty) throw new IllegalArgumentException()
+
+        println(text)
+
+        for ((value, index) <- values.zipWithIndex) {
+            println(s"${index + 1}. $value")
         }
 
-        maps(safeReadOption(maps.length))
+        values(safeReadOption(values.length))
     }
 
     private def mainMenu(option: Int = 0): Phase = option match {
@@ -46,10 +63,17 @@ class CommandLineUserInterface extends UserInterface {
 
             Phase.MainMenu
         case 2 =>
-            val selectedMap = mapSelector()
-            game.start(selectedMap)
+            val loadedMaps = game.getLoadedMaps
 
-            println(s"Map '$selectedMap' is selected.")
+            if (loadedMaps.isEmpty) {
+                println("Please load a map before starting the game.")
+                return Phase.MainMenu
+            }
+
+            activeMapName = selector("Available maps:", loadedMaps)
+            game.start(activeMapName)
+
+            println(s"Map '$activeMapName' is selected.")
             println()
             println("Game has started.")
             println("Block is represented with 'X' on the grid.")
@@ -59,11 +83,17 @@ class CommandLineUserInterface extends UserInterface {
             Phase.InGame
         case 3 =>
             println("Please choose the map you want to edit.")
+            val loadedMaps = game.getLoadedMaps
 
-            val mapName = mapSelector()
-            editedMap = game.getMap(mapName)
+            if (loadedMaps.isEmpty) {
+                println("Please load a map before starting map creator.")
+                return Phase.MainMenu
+            }
 
-            println(s"Map '$mapName' is selected.")
+            activeMapName = selector("Available maps:", loadedMaps)
+            editedMap = game.getMap(activeMapName)
+
+            println(s"Map '$activeMapName' is selected.")
             println("Welcome to Map Creator.")
             println()
 
@@ -76,7 +106,8 @@ class CommandLineUserInterface extends UserInterface {
         case 0 =>
             println("1. Make a move")
             println("2. Load move sequence from file")
-            println("3. Quit game")
+            println("3. Write possible solution to file")
+            println("4. Quit game")
 
             Phase.InGame
         case 1 =>
@@ -109,6 +140,13 @@ class CommandLineUserInterface extends UserInterface {
             }
 
             outcomeMessage(game.executeMoveSequence())
+        case 3 =>
+            print("Please enter output file name: ")
+            val fileName = scala.io.StdIn.readLine()
+
+            game.findSolution(fileName)
+
+            Phase.InGame
         case _ =>
             Phase.Quit
     }
@@ -122,13 +160,173 @@ class CommandLineUserInterface extends UserInterface {
             println("5. Set start position")
             println("6. Set finish position")
             println("7. Create operation sequence")
-            println("8. Save current map to a file")
-            println("9. Return to main menu (editing progress will be lost)")
-            println("10. Quit game")
+            println("8. Execute operation sequence")
+            println("9. Print current map state")
+            println("10. Save current map to a file")
+            println("11. Return to main menu (editing progress will be lost)")
+            println("12. Quit game")
 
             Phase.MapCreator
+        case 1 =>
+            val position = readCoordinates()
+            editedMap = MapCreator.removePlate(position._1, position._2)(editedMap)
+
+            Phase.MapCreator
+        case 2 =>
+            val position = readCoordinates()
+            editedMap = MapCreator.addPlate(position._1, position._2)(editedMap)
+
+            Phase.MapCreator
+        case 3 =>
+            val position = readCoordinates()
+            editedMap = MapCreator.setTrap(position._1, position._2)(editedMap)
+
+            Phase.MapCreator
+        case 4 =>
+            val position = readCoordinates()
+            editedMap = MapCreator.removeTrap(position._1, position._2)(editedMap)
+
+            Phase.MapCreator
+        case 5 =>
+            val position = readCoordinates()
+            editedMap = MapCreator.setStart(position._1, position._2)(editedMap)
+
+            Phase.MapCreator
+        case 6 =>
+            val position = readCoordinates()
+            editedMap = MapCreator.setFinish(position._1, position._2)(editedMap)
+
+            Phase.MapCreator
+        case 7 =>
+            print("Please enter sequence name: ")
+            val sequenceName = scala.io.StdIn.readLine()
+
+            sequences(sequenceName) = new OperationSequence(sequenceName)
+            activeSequence = sequences(sequenceName)
+
+            Phase.MapSequenceCreator
+        case 8 =>
+            val operationSequences = sequences.keys.toVector.sorted
+
+            if (operationSequences.isEmpty) {
+                println("There isn't any operation sequence available.")
+                println("Try creating one before the execution.")
+                return Phase.MapCreator
+            }
+
+            val sequenceName = selector("Available operation sequences:", operationSequences)
+            editedMap = sequences(sequenceName).execute(editedMap)
+
+            Phase.MapCreator
+        case 9 =>
+            println()
+            print(editedMap)
+            println()
+
+            Phase.MapCreator
+        case 10 =>
+            print("Please enter output file name: ")
+            val fileName = scala.io.StdIn.readLine() match {
+                case "" => activeMapName.replace(".txt", "_edited.txt")
+                case name: String => name
+            }
+
+            new PrintWriter(fileName) {
+                write(editedMap.toString)
+                close()
+            }
+
+            println(s"Edited map was written to the file '$fileName'.")
+
+            Phase.MapCreator
+        case 11 =>
+            Phase.MainMenu
         case _ =>
             Phase.Quit
+    }
+
+    private def mapSequenceCreator(option: Int = 0): Phase = option match {
+        case 0 =>
+            println("1. Remove plate")
+            println("2. Add plate")
+            println("3. Set trap")
+            println("4. Remove trap")
+            println("5. Set start position")
+            println("6. Set finish position")
+            println("7. Inversion")
+            println("8. Remove all traps")
+            println("9. Filter")
+
+            for ((name, index) <- sequences.keys.toVector.sorted.zipWithIndex) {
+                println(s"${index + 10}. $name (sequence)")
+            }
+
+            println(s"${sequences.size + 10}. Return to map creator")
+
+            Phase.MapSequenceCreator
+        case 1 =>
+            val position = readCoordinates()
+            activeSequence.attach(MapCreator.removePlate(position._1, position._2))
+
+            Phase.MapSequenceCreator
+        case 2 =>
+            val position = readCoordinates()
+            activeSequence.attach(MapCreator.addPlate(position._1, position._2))
+
+            Phase.MapSequenceCreator
+        case 3 =>
+            val position = readCoordinates()
+            activeSequence.attach(MapCreator.setTrap(position._1, position._2))
+
+            Phase.MapSequenceCreator
+        case 4 =>
+            val position = readCoordinates()
+            activeSequence.attach(MapCreator.removeTrap(position._1, position._2))
+
+            Phase.MapSequenceCreator
+        case 5 =>
+            val position = readCoordinates()
+            activeSequence.attach(MapCreator.setStart(position._1, position._2))
+
+            Phase.MapSequenceCreator
+        case 6 =>
+            val position = readCoordinates()
+            activeSequence.attach(MapCreator.setFinish(position._1, position._2))
+
+            Phase.MapSequenceCreator
+        case 7 =>
+            activeSequence.attach(MapCreator.invert)
+
+            Phase.MapSequenceCreator
+        case 8 =>
+            activeSequence.attach(MapCreator.removeTraps)
+
+            Phase.MapSequenceCreator
+        case 9 =>
+            val position = readCoordinates()
+
+            println("Please enter filter range: ")
+            val n = scala.io.StdIn.readInt()
+
+            activeSequence.attach(MapCreator.filter(position._1, position._2, n))
+
+            Phase.MapSequenceCreator
+        case choice: Int if choice == sequences.size + 10 =>
+            Phase.MapCreator
+        case choice: Int =>
+            val index = choice - 10
+            val keys = sequences.keys.toVector.sorted
+
+            activeSequence.attach(sequences(keys(index)).sequence)
+
+            Phase.MapSequenceCreator
+    }
+
+    private def quit(): Unit = {
+        new ObjectOutputStream(new FileOutputStream(sequencesFileName)) {
+            writeObject(sequences)
+            close()
+        }
     }
 
     @tailrec
@@ -166,13 +364,21 @@ class CommandLineUserInterface extends UserInterface {
             Phase.InGame
     }
 
+    private def readCoordinates(): Position = {
+        print("Please enter target coordinates (x y - in the same line): ")
+        val input = scala.io.StdIn.readLine().split(" ").map(_.toInt)
+
+        (input(0), input(1))
+    }
+
     @tailrec
     private def displayMenu(phase: Phase): Unit = {
         phase match {
             case Phase.MainMenu => mainMenu()
             case Phase.InGame => inGame()
             case Phase.MapCreator => mapCreator()
-            case Phase.Quit => return
+            case Phase.MapSequenceCreator => mapSequenceCreator()
+            case Phase.Quit => quit(); return
         }
 
         val option = safeReadOption()
@@ -181,6 +387,7 @@ class CommandLineUserInterface extends UserInterface {
             case Phase.MainMenu => mainMenu(option)
             case Phase.InGame => inGame(option)
             case Phase.MapCreator => mapCreator(option)
+            case Phase.MapSequenceCreator => mapSequenceCreator(option)
         }
 
         displayMenu(nextPhase)
