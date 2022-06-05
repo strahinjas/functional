@@ -1,6 +1,6 @@
 package bloxorz.game
 
-import bloxorz.console.CommandLineInterface
+import bloxorz.console.CommandLineUserInterface
 import bloxorz.game.Direction.Direction
 import bloxorz.game.Orientation._
 import bloxorz.game.Outcome._
@@ -12,7 +12,7 @@ import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
 import scala.util.{ Try, Using }
 
-class Game(interface: Interface) {
+class Game(interface: UserInterface) {
     private val maps: mutable.HashMap[String, Map] = new mutable.HashMap()
     private var selectedMap: Map = _
 
@@ -34,6 +34,7 @@ class Game(interface: Interface) {
     }
 
     def getLoadedMaps: Vector[String] = maps.keys.toVector.sorted
+    def getMap(mapName: String): Map = maps(mapName)
 
     def start(mapName: String): Unit = {
         selectedMap = new Map(maps(mapName).grid)
@@ -109,15 +110,10 @@ class Game(interface: Interface) {
             println(stringBuilder.toString())
         }
     }
-
-    def printMap(name: String): Unit = {
-        println()
-        print(maps(name))
-    }
 }
 
 object Game {
     def main(args: Array[String]): Unit = {
-        new Game(new CommandLineInterface)
+        new Game(new CommandLineUserInterface)
     }
 }

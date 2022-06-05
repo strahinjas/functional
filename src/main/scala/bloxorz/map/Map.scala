@@ -1,6 +1,6 @@
 package bloxorz.map
 
-import bloxorz.map.Field.{ Field, Finish, Start, Unknown }
+import bloxorz.map.Field.{ Field, Finish, Start, Trap, Unknown }
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -28,7 +28,9 @@ class Map(val grid: ArrayBuffer[ArrayBuffer[Field]]) {
     def get(x: Int, y: Int): Field = grid(x)(y)
     def get(position: Position): Field = get(position._1, position._2)
 
-    def set(x: Int, y: Int, symbol: Char): Unit = grid(x)(y) = Field.withName(symbol)
+    def set(x: Int, y: Int, field: Field): Unit = grid(x)(y) = field
+    def set(x: Int, y: Int, symbol: Char): Unit = set(x, y, Field.withName(symbol))
+    def set(position: Position, field: Field): Unit = set(position._1, position._2, field)
     def set(position: Position, symbol: Char): Unit = set(position._1, position._2, symbol)
 
     def getStartPosition: Position = {
@@ -41,12 +43,20 @@ class Map(val grid: ArrayBuffer[ArrayBuffer[Field]]) {
               if grid(x)(y) == Finish) yield (x, y)).head
     }
 
+    def getTrapPositions: Vector[Position] = {
+        (for (x <- grid.indices; y <- grid(0).indices
+              if grid(x)(y) == Trap) yield (x, y)).toVector
+    }
+
     def isPositionValid(position: Position): Boolean = {
         val x = position._1
         val y = position._2
 
         x >= 0 && x < grid.size && y >= 0 && y < grid(0).size
     }
+
+    def getHeight: Int = grid.size
+    def getWidth: Int = grid(0).size
 
     override def toString: String = {
         val stringBuilder = new mutable.StringBuilder()

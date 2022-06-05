@@ -1,8 +1,8 @@
 package mocks
 
-import bloxorz.game.Interface
+import bloxorz.game.UserInterface
 
-class MockInterface extends Interface {
+class MockUserInterface extends UserInterface {
     override def run(): Unit = {
         // Do nothing, tests will call Game methods explicitly
     }

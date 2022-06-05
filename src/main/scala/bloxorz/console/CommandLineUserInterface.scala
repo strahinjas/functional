@@ -1,13 +1,16 @@
 package bloxorz.console
 
 import bloxorz.console.Phase._
-import bloxorz.game.Outcome.{ Defeat, InProgress, Outcome, Victory }
-import bloxorz.game.{ Direction, Interface }
+import bloxorz.game.Outcome._
+import bloxorz.game.{ Direction, UserInterface }
+import bloxorz.map.Map
 
 import scala.annotation.tailrec
 import scala.util.{ Failure, Success }
 
-class CommandLineInterface extends Interface {
+class CommandLineUserInterface extends UserInterface {
+    private var editedMap: Map = _
+
     private def mapSelector(): String = {
         println("Available maps:")
 
@@ -55,6 +58,15 @@ class CommandLineInterface extends Interface {
 
             Phase.InGame
         case 3 =>
+            println("Please choose the map you want to edit.")
+
+            val mapName = mapSelector()
+            editedMap = game.getMap(mapName)
+
+            println(s"Map '$mapName' is selected.")
+            println("Welcome to Map Creator.")
+            println()
+
             Phase.MapCreator
         case _ =>
             Phase.Quit
@@ -73,9 +85,10 @@ class CommandLineInterface extends Interface {
             try {
                 val direction = Direction.fromString(scala.io.StdIn.readLine())
                 println()
-                val outcome = outcomeMessage(game.move(direction))
 
+                val outcome = outcomeMessage(game.move(direction))
                 println()
+
                 outcome
             } catch {
                 case _: IllegalArgumentException =>
@@ -101,7 +114,21 @@ class CommandLineInterface extends Interface {
     }
 
     private def mapCreator(option: Int = 0): Phase = option match {
-        case 0 => Phase.MapCreator
+        case 0 =>
+            println("1. Remove plate from the field")
+            println("2. Add plate to the field")
+            println("3. Set trap")
+            println("4. Remove trap")
+            println("5. Set start position")
+            println("6. Set finish position")
+            println("7. Create operation sequence")
+            println("8. Save current map to a file")
+            println("9. Return to main menu (editing progress will be lost)")
+            println("10. Quit game")
+
+            Phase.MapCreator
+        case _ =>
+            Phase.Quit
     }
 
     @tailrec
@@ -142,18 +169,18 @@ class CommandLineInterface extends Interface {
     @tailrec
     private def displayMenu(phase: Phase): Unit = {
         phase match {
-            case MainMenu => mainMenu()
-            case InGame => inGame()
-            case MapCreator => mapCreator()
-            case Quit => return
+            case Phase.MainMenu => mainMenu()
+            case Phase.InGame => inGame()
+            case Phase.MapCreator => mapCreator()
+            case Phase.Quit => return
         }
 
         val option = safeReadOption()
 
         val nextPhase = phase match {
-            case MainMenu => mainMenu(option)
-            case InGame => inGame(option)
-            case MapCreator => mapCreator(option)
+            case Phase.MainMenu => mainMenu(option)
+            case Phase.InGame => inGame(option)
+            case Phase.MapCreator => mapCreator(option)
         }
 
         displayMenu(nextPhase)
