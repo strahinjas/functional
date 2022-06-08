@@ -1,6 +1,7 @@
 package bloxorz.game
 
 import bloxorz.console.CommandLineUserInterface
+import bloxorz.game.Block.BlockPosition
 import bloxorz.game.Direction._
 import bloxorz.game.Orientation._
 import bloxorz.game.Outcome._
@@ -8,10 +9,11 @@ import bloxorz.map.Field._
 import bloxorz.map._
 
 import java.io.PrintWriter
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
-import scala.util.{ Try, Using }
+import scala.util.{ Random, Try, Using }
 
 class Game(interface: UserInterface) {
     private val maps: mutable.HashMap[String, Map] = new mutable.HashMap()
@@ -96,7 +98,7 @@ class Game(interface: UserInterface) {
         throw new IllegalStateException()
     }
 
-    def printMap(): Unit = {
+    def printMap(block: Block = this.block): Unit = {
         if (selectedMap != null && block != null) {
             val stringBuilder = new mutable.StringBuilder()
             val occupiedFields = block.getOccupiedFields
@@ -116,9 +118,47 @@ class Game(interface: UserInterface) {
     }
 
     def findSolution(fileName: String): List[Direction] = {
-        val solution = Nil
+        type Moves = List[Direction]
+        def allMoves: Moves = Random.shuffle(List(Up, Down, Left, Right))
 
-        // TODO: Find appropriate algorithm
+        @tailrec
+        def dfs(block: Block, stack: List[Moves],
+                visited: Set[BlockPosition] = Set.empty,
+                path: Moves = List.empty): Moves = {
+            printMap(block)
+
+            val positionVector = block.getCurrentPositionVector
+
+            if (visited.contains(positionVector)) {
+                dfs(block.immutableMove(Direction.opposite(path.head)),
+                           stack.tail, visited, path.tail)
+            } else {
+                evaluateOutcome(block) match {
+                    case Victory =>
+                        path.reverse
+                    case outcome =>
+                        if (outcome == Defeat || stack.head.isEmpty) {
+                            if (path.isEmpty) return List.empty
+
+                            val newBlock = block.immutableMove(Direction.opposite(path.head))
+
+                            dfs(newBlock, stack.tail,
+                                visited + positionVector - newBlock.getCurrentPositionVector, path.tail)
+                        } else {
+                            val nextMove = stack.head.head
+                            val movesLeft = stack.head.tail
+                            val nextPossibleMoves = allMoves.filterNot(_ == Direction.opposite(nextMove))
+
+                            dfs(block.immutableMove(nextMove),
+                                nextPossibleMoves :: movesLeft :: stack.tail,
+                                visited + positionVector, nextMove :: path)
+                        }
+                }
+            }
+        }
+
+        val block = new Block(selectedMap.getStartPosition)
+        val solution = dfs(block, List(allMoves))
 
         if (solution.nonEmpty) {
             new PrintWriter(fileName) {
