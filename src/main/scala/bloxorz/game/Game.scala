@@ -1,12 +1,13 @@
 package bloxorz.game
 
 import bloxorz.console.CommandLineUserInterface
-import bloxorz.game.Direction.Direction
+import bloxorz.game.Direction._
 import bloxorz.game.Orientation._
 import bloxorz.game.Outcome._
 import bloxorz.map.Field._
 import bloxorz.map._
 
+import java.io.PrintWriter
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
@@ -44,10 +45,10 @@ class Game(interface: UserInterface) {
     def move(direction: Direction): Outcome = {
         block.move(direction)
         printMap()
-        evaluateOutcome()
+        evaluateOutcome(block)
     }
 
-    private def evaluateOutcome(): Outcome = {
+    private def evaluateOutcome(block: Block): Outcome = {
         val position = block.position
         val orientation = block.orientation
 
@@ -60,7 +61,7 @@ class Game(interface: UserInterface) {
             return Victory
         }
 
-        if (orientation == Vertical && selectedMap.get(position) == Plate) {
+        if (orientation == Vertical && Field.validVertical(selectedMap.get(position))) {
             return InProgress
         }
 
@@ -111,8 +112,19 @@ class Game(interface: UserInterface) {
         }
     }
 
-    def findSolution(fileName: String): Boolean = {
-        true
+    def findSolution(fileName: String): List[Direction] = {
+        val solution = Nil
+
+        // TODO: Find appropriate algorithm
+
+        if (solution.nonEmpty) {
+            new PrintWriter(fileName) {
+                solution.foreach(move => write(Direction.toStringFile(move) + System.lineSeparator()))
+                close()
+            }
+        }
+
+        solution
     }
 }
 

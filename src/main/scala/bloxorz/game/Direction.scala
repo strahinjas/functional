@@ -17,6 +17,14 @@ object Direction extends Enumeration {
         (xAxis(first) && xAxis(second)) || (yAxis(first) && yAxis(second))
     }
 
+    def opposite(direction: Direction): Direction = direction match {
+        case Up => Down
+        case Down => Up
+        case Left => Right
+        case Right => Left
+        case _ => throw new IllegalArgumentException()
+    }
+
     def fromString(input: String): Direction = {
         input.toLowerCase() match {
             case "u" | "up" => Up
@@ -25,5 +33,21 @@ object Direction extends Enumeration {
             case "r" | "right" => Right
             case _ => throw new IllegalArgumentException()
         }
+    }
+
+    def toString(direction: Direction): String = direction match {
+        case Up => "UP"
+        case Down => "DOWN"
+        case Left => "LEFT"
+        case Right => "RIGHT"
+        case _ => throw new IllegalArgumentException()
+    }
+
+    def toStringFile(direction: Direction): String = direction match {
+        case Up => "u"
+        case Down => "d"
+        case Left => "l"
+        case Right => "r"
+        case _ => throw new IllegalArgumentException()
     }
 }

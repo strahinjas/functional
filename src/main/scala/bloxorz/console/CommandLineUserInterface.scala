@@ -7,7 +7,7 @@ import bloxorz.map.Map
 import bloxorz.map.Map.Position
 import bloxorz.map.creator.{ MapCreator, OperationSequence }
 
-import java.io.{ FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream, PrintWriter }
+import java.io._
 import java.nio.file.{ Files, Paths }
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -106,7 +106,7 @@ class CommandLineUserInterface extends UserInterface {
         case 0 =>
             println("1. Make a move")
             println("2. Load move sequence from file")
-            println("3. Write possible solution to file")
+            println("3. Write one possible solution to file")
             println("4. Quit game")
 
             Phase.InGame
@@ -142,9 +142,20 @@ class CommandLineUserInterface extends UserInterface {
             outcomeMessage(game.executeMoveSequence())
         case 3 =>
             print("Please enter output file name: ")
-            val fileName = scala.io.StdIn.readLine()
+            val fileName = scala.io.StdIn.readLine() match {
+                case "" => "solutions/" + activeMapName.replace(".txt", "_solved.txt")
+                case name: String => name
+            }
 
-            game.findSolution(fileName)
+            val moves = game.findSolution(fileName)
+
+            if (moves.isEmpty) {
+                println("There's no possible solution for the provided map.")
+            } else {
+                println("Here are the winning moves:")
+                moves.foreach(move => println(Direction.toString(move)))
+                println()
+            }
 
             Phase.InGame
         case _ =>

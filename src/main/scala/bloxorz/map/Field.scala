@@ -1,7 +1,5 @@
 package bloxorz.map
 
-import bloxorz.game.Direction.Direction
-
 object Field extends Enumeration {
     type Field = Value
 
@@ -17,7 +15,7 @@ object Field extends Enumeration {
         values.find(_.toString.head == symbol).getOrElse(Unknown)
     }
 
-    def validHorizontal(field: Field): Boolean = {
-        field != Empty
+    def validVertical(field: Field): Boolean = {
+        field == Plate || field == Start
     }
 }

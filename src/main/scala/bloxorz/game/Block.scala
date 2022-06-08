@@ -9,10 +9,16 @@ class Block(var position: Position, var orientation: Orientation = Vertical, var
         position = getNextPosition(direction)
 
         if (orientation != Horizontal || onSameAxis(direction, this.direction)) {
-            orientation = opposite(orientation)
+            orientation = Orientation.opposite(orientation)
             this.direction = direction
             if (orientation == Vertical) position = getNextPosition(direction)
         }
+    }
+
+    def immutableMove(direction: Direction): Block = {
+        val block = new Block(position, orientation, direction)
+        block.move(direction)
+        block
     }
 
     def getOccupiedFields: Vector[Position] = {
