@@ -1,7 +1,7 @@
 package bloxorz.map.creator
 
 import bloxorz.map.Field._
-import bloxorz.map.Map
+import bloxorz.map.{ Field, Map }
 import bloxorz.map.Map.Position
 
 import scala.collection.mutable.ArrayBuffer
@@ -89,6 +89,7 @@ object MapCreator {
 
     def filter(x: Int, y: Int, n: Int)(map: Map): Map = {
         if (!map.isPositionValid(x, y)) throw new IllegalArgumentException()
+        if (!Field.validFilter(map.get(x, y))) throw new IllegalArgumentException()
 
         map.getTrapPositions.foreach(position => {
             if ((position._1 == x && (y - position._2).abs <= n) ||

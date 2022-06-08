@@ -18,4 +18,8 @@ object Field extends Enumeration {
     def validVertical(field: Field): Boolean = {
         field == Plate || field == Start
     }
+
+    def validFilter(field: Field): Boolean = {
+        field == Trap || field == Empty
+    }
 }

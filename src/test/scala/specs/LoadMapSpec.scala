@@ -6,7 +6,7 @@ import mocks.MockUserInterface
 import java.io.FileNotFoundException
 
 class LoadMapSpec extends UnitSpec {
-    "The loadMap method" should "return Success(true) if the map is loaded correctly" in {
+    "Game.loadMap" should "return Success(true) if the map is loaded correctly" in {
         val game = new Game(new MockUserInterface)
         val result = game.loadMap("maps/a.txt")
 

@@ -143,7 +143,11 @@ class CommandLineUserInterface extends UserInterface {
         case 3 =>
             print("Please enter output file name: ")
             val fileName = scala.io.StdIn.readLine() match {
-                case "" => "solutions/" + activeMapName.replace(".txt", "_solved.txt")
+                case "" =>
+                    val index = activeMapName.lastIndexOf("/")
+
+                    if (index >= 0) "solutions" + activeMapName.substring(index)
+                    else "solutions/" + activeMapName
                 case name: String => name
             }
 
@@ -162,98 +166,126 @@ class CommandLineUserInterface extends UserInterface {
             Phase.Quit
     }
 
-    private def mapCreator(option: Int = 0): Phase = option match {
-        case 0 =>
-            println("1. Remove plate from the field")
-            println("2. Add plate to the field")
-            println("3. Set trap")
-            println("4. Remove trap")
-            println("5. Set start position")
-            println("6. Set finish position")
-            println("7. Create operation sequence")
-            println("8. Execute operation sequence")
-            println("9. Print current map state")
-            println("10. Save current map to a file")
-            println("11. Return to main menu (editing progress will be lost)")
-            println("12. Quit game")
+    private def mapCreator(option: Int = 0): Phase = {
+        try {
+            option match {
+                case 0 =>
+                    println("1. Remove plate from the field")
+                    println("2. Add plate to the field")
+                    println("3. Set trap")
+                    println("4. Remove trap")
+                    println("5. Set start position")
+                    println("6. Set finish position")
+                    println("7. Swap start and finish positions")
+                    println("8. Remove all traps")
+                    println("9. Filter")
+                    println("10. Create operation sequence")
+                    println("11. Execute operation sequence")
+                    println("12. Print current map state")
+                    println("13. Save current map to a file")
+                    println("14. Return to main menu (editing progress will be lost)")
+                    println("15. Quit game")
 
-            Phase.MapCreator
-        case 1 =>
-            val position = readCoordinates()
-            editedMap = MapCreator.removePlate(position._1, position._2)(editedMap)
+                    Phase.MapCreator
+                case 1 =>
+                    val position = readCoordinates()
+                    editedMap = MapCreator.removePlate(position._1, position._2)(editedMap)
 
-            Phase.MapCreator
-        case 2 =>
-            val position = readCoordinates()
-            editedMap = MapCreator.addPlate(position._1, position._2)(editedMap)
+                    Phase.MapCreator
+                case 2 =>
+                    val position = readCoordinates()
+                    editedMap = MapCreator.addPlate(position._1, position._2)(editedMap)
 
-            Phase.MapCreator
-        case 3 =>
-            val position = readCoordinates()
-            editedMap = MapCreator.setTrap(position._1, position._2)(editedMap)
+                    Phase.MapCreator
+                case 3 =>
+                    val position = readCoordinates()
+                    editedMap = MapCreator.setTrap(position._1, position._2)(editedMap)
 
-            Phase.MapCreator
-        case 4 =>
-            val position = readCoordinates()
-            editedMap = MapCreator.removeTrap(position._1, position._2)(editedMap)
+                    Phase.MapCreator
+                case 4 =>
+                    val position = readCoordinates()
+                    editedMap = MapCreator.removeTrap(position._1, position._2)(editedMap)
 
-            Phase.MapCreator
-        case 5 =>
-            val position = readCoordinates()
-            editedMap = MapCreator.setStart(position._1, position._2)(editedMap)
+                    Phase.MapCreator
+                case 5 =>
+                    val position = readCoordinates()
+                    editedMap = MapCreator.setStart(position._1, position._2)(editedMap)
 
-            Phase.MapCreator
-        case 6 =>
-            val position = readCoordinates()
-            editedMap = MapCreator.setFinish(position._1, position._2)(editedMap)
+                    Phase.MapCreator
+                case 6 =>
+                    val position = readCoordinates()
+                    editedMap = MapCreator.setFinish(position._1, position._2)(editedMap)
 
-            Phase.MapCreator
-        case 7 =>
-            print("Please enter sequence name: ")
-            val sequenceName = scala.io.StdIn.readLine()
+                    Phase.MapCreator
+                case 7 =>
+                    editedMap = MapCreator.invert(editedMap)
 
-            sequences(sequenceName) = new OperationSequence(sequenceName)
-            activeSequence = sequences(sequenceName)
+                    Phase.MapCreator
+                case 8 =>
+                    editedMap = MapCreator.removeTraps(editedMap)
 
-            Phase.MapSequenceCreator
-        case 8 =>
-            val operationSequences = sequences.keys.toVector.sorted
+                    Phase.MapCreator
+                case 9 =>
+                    val position = readCoordinates()
 
-            if (operationSequences.isEmpty) {
-                println("There isn't any operation sequence available.")
-                println("Try creating one before the execution.")
-                return Phase.MapCreator
+                    println("Please enter filter range: ")
+                    val n = scala.io.StdIn.readInt()
+
+                    editedMap = MapCreator.filter(position._1, position._2, n)(editedMap)
+
+                    Phase.MapCreator
+                case 10 =>
+                    print("Please enter sequence name: ")
+                    val sequenceName = scala.io.StdIn.readLine()
+
+                    sequences(sequenceName) = new OperationSequence(sequenceName)
+                    activeSequence = sequences(sequenceName)
+
+                    Phase.MapSequenceCreator
+                case 11 =>
+                    val operationSequences = sequences.keys.toVector.sorted
+
+                    if (operationSequences.isEmpty) {
+                        println("There isn't any operation sequence available.")
+                        println("Try creating one before the execution.")
+                        return Phase.MapCreator
+                    }
+
+                    val sequenceName = selector("Available operation sequences:", operationSequences)
+                    editedMap = sequences(sequenceName).execute(editedMap)
+
+                    Phase.MapCreator
+                case 12 =>
+                    println()
+                    print(editedMap)
+                    println()
+
+                    Phase.MapCreator
+                case 13 =>
+                    print("Please enter output file name: ")
+                    val fileName = scala.io.StdIn.readLine() match {
+                        case "" => activeMapName.replace(".txt", "_edited.txt")
+                        case name: String => name
+                    }
+
+                    new PrintWriter(fileName) {
+                        write(editedMap.toString)
+                        close()
+                    }
+
+                    println(s"Edited map was written to the file '$fileName'.")
+
+                    Phase.MapCreator
+                case 14 =>
+                    Phase.MainMenu
+                case _ =>
+                    Phase.Quit
             }
-
-            val sequenceName = selector("Available operation sequences:", operationSequences)
-            editedMap = sequences(sequenceName).execute(editedMap)
-
-            Phase.MapCreator
-        case 9 =>
-            println()
-            print(editedMap)
-            println()
-
-            Phase.MapCreator
-        case 10 =>
-            print("Please enter output file name: ")
-            val fileName = scala.io.StdIn.readLine() match {
-                case "" => activeMapName.replace(".txt", "_edited.txt")
-                case name: String => name
-            }
-
-            new PrintWriter(fileName) {
-                write(editedMap.toString)
-                close()
-            }
-
-            println(s"Edited map was written to the file '$fileName'.")
-
-            Phase.MapCreator
-        case 11 =>
-            Phase.MainMenu
-        case _ =>
-            Phase.Quit
+        } catch {
+            case _: IllegalArgumentException =>
+                println("Illegal argument value provided.")
+                Phase.MapCreator
+        }
     }
 
     private def mapSequenceCreator(option: Int = 0): Phase = option match {
@@ -328,7 +360,7 @@ class CommandLineUserInterface extends UserInterface {
             val index = choice - 10
             val keys = sequences.keys.toVector.sorted
 
-            activeSequence.attach(sequences(keys(index)).sequence)
+            activeSequence.attach(OperationSequence.toOperation(sequences(keys(index))))
 
             Phase.MapSequenceCreator
     }

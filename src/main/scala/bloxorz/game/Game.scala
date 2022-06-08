@@ -24,6 +24,9 @@ class Game(interface: UserInterface) {
     interface.game = this
     interface.run()
 
+    def getBlock: Block = block
+    def getSelectedMapName: Map = selectedMap
+
     def loadMap(fileName: String): Try[Boolean] = {
         Using(Source.fromFile(fileName)) { source =>
             val grid = ArrayBuffer.from(source.getLines().toArray.map(line => ArrayBuffer.from(line.toCharArray)))
