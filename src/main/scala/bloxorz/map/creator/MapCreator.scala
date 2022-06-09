@@ -20,13 +20,18 @@ object MapCreator {
         }
 
         def resizeMap(dx: Int, dy: Int): Unit = {
-            val height = map.getHeight
             val width = map.getWidth
 
-            if (dx < 0) map.grid.prependAll(new ArrayBuffer[ArrayBuffer[Field]](-dx))
-            if (dx > 0) map.grid.padToInPlace(height + dx, new ArrayBuffer[Field]())
+            val xPadding = new ArrayBuffer[ArrayBuffer[Field]](dx.abs)
+            for (_ <- 0 until dx.abs) xPadding.addOne(new ArrayBuffer[Field]())
 
-            if (dy < 0) map.grid.foreach(row => row.prependAll(new ArrayBuffer[Field]().padTo(-dy, Empty)))
+            if (dx < 0) map.grid.prependAll(xPadding)
+            if (dx > 0) map.grid.addAll(xPadding)
+
+            if (dy < 0) map.grid.foreach(row =>
+                if (row.isEmpty) row.padToInPlace(width - dy, Empty)
+                else row.prependAll(new ArrayBuffer[Field]().padTo(-dy, Empty))
+            )
             if (dy > 0) map.grid.foreach(row => row.padToInPlace(width + dy, Empty))
         }
 
