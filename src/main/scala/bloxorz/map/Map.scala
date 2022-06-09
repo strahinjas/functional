@@ -12,15 +12,12 @@ class Map(val grid: ArrayBuffer[ArrayBuffer[Field]]) {
         if (grid.isEmpty) return false
         val n = grid(0).size
 
-        for (row <- grid) {
+        grid.foreach(row => {
             if (row.size != n) return false
             if (row.contains(Unknown)) return false
-        }
+        })
 
-        if (grid.flatten.count(_ == Start) != 1) return false
-        if (grid.flatten.count(_ == Finish) != 1) return false
-
-        true
+        grid.flatten.count(_ == Start) == 1 && grid.flatten.count(_ == Start) == 1
     }
 
     import bloxorz.map.Map.Position
