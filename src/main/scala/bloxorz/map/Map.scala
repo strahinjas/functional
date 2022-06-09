@@ -17,7 +17,7 @@ class Map(val grid: ArrayBuffer[ArrayBuffer[Field]]) {
             if (row.contains(Unknown)) return false
         })
 
-        grid.flatten.count(_ == Start) == 1 && grid.flatten.count(_ == Start) == 1
+        grid.flatten.count(_ == Start) == 1 && grid.flatten.count(_ == Finish) == 1
     }
 
     import bloxorz.map.Map.Position
